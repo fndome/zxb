@@ -1,0 +1,46 @@
+feat: zxb v0.0.1 - Zig SQL Query Builder 初始版本 🎉
+
+## 核心特性
+
+- ✅ 4 字段 Bb 结构体 - 简洁设计表达所有查询
+- ✅ 自动过滤 - 自动过滤 nil/0/empty 值
+- ✅ 链式 API - 流畅的查询构建
+- ✅ 类型安全 - comptime 编译时类型检查
+- ✅ build() 方法 - 一次性返回 SQL 和参数
+- ✅ 零依赖 - 纯 Zig 实现
+
+## 条件方法
+
+- eq, ne, gt, gte, lt, lte
+- like (包含匹配 %value%)
+- likeLeft (前缀匹配 value%, 可使用索引)
+- sort (ASC/DESC)
+- limit, offset
+
+## 设计理念
+
+继承 xb (Go) 的简洁设计，专为 AI 时代优化：
+- 职责原子性 > 性能
+- QueryResult 作为完整对象，可传递给其他组件
+- 不添加多余方法，保持最小接口
+
+## 文档
+
+完整的文档体系：
+- doc/QUICK_REFERENCE.md - API 速查
+- doc/HOW_IT_WORKS.md - 工作原理
+- doc/BUILD_METHOD.md - build() 方法详解
+- doc/LIKE_PATTERNS.md - LIKE 模式详解
+- doc/DESIGN.md - 设计哲学
+- doc/GETTING_STARTED.md - 快速开始
+- CONTRIBUTING.md - 贡献指南
+
+## 演进历程
+
+sqli (Java) 2015-2022 → xb (Go) 2023-2025 → zxb (Zig) 2025+
+
+"总有一天，大模型能理解美和丑，丑陋的东西不永恒。"
+"AI 时代，编程语言得相信 AI。"
+
+Zig 0.14.1 兼容
+
