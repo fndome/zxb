@@ -4,6 +4,11 @@ pub const Value = @import("value.zig").Value;
 pub const Bb = @import("bb.zig").Bb;
 pub const Builder = @import("builder.zig").Builder;
 
+// ⭐ Custom Interface (v0.2.0)
+pub const Custom = @import("custom.zig").Custom;
+pub const MySQLCustom = @import("custom.zig").MySQLCustom;
+pub const QdrantCustom = @import("custom.zig").QdrantCustom;
+
 // Re-export constants
 pub const ASC = @import("builder.zig").ASC;
 pub const DESC = @import("builder.zig").DESC;
@@ -105,4 +110,45 @@ test "like patterns" {
 
     try std.testing.expect(std.mem.indexOf(u8, sql, "name LIKE ?") != null);
     try std.testing.expect(std.mem.indexOf(u8, sql, "sku LIKE ?") != null);
+}
+
+test "Custom interface - MySQL" {
+    const allocator = std.testing.allocator;
+
+    var builder = of(allocator, "users");
+    defer builder.deinit();
+
+    // ⭐ Set MySQL Custom
+    var mysql = MySQLCustom.withUpsert();
+    _ = builder.setCustom(mysql.custom());
+
+    _ = try builder.eq("id", 1);
+    _ = try builder.eq("name", "Alice");
+
+    var result = try builder.build();
+    defer result.deinit(allocator);
+
+    std.debug.print("\nMySQL Custom result:\n", .{});
+    std.debug.print("SQL: {s}\n", .{result.sql});
+
+    try std.testing.expect(result.sql.len > 0);
+}
+
+test "Custom interface - Qdrant JSON" {
+    const allocator = std.testing.allocator;
+
+    var builder = of(allocator, "vectors");
+    defer builder.deinit();
+
+    // ⭐ Set Qdrant Custom
+    var qdrant = QdrantCustom.highPrecision();
+    _ = builder.setCustom(qdrant.custom());
+
+    const json = try builder.jsonOfSelect();
+    defer allocator.free(json);
+
+    std.debug.print("\nQdrant Custom JSON:\n{s}\n", .{json});
+
+    try std.testing.expect(json.len > 0);
+    try std.testing.expect(std.mem.indexOf(u8, json, "hnsw_ef") != null);
 }

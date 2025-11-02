@@ -1,5 +1,57 @@
 # Changelog
 
+## v0.0.2 (2025-01-XX) - Custom Interface 🎨
+
+### ✨ 新特性
+
+- **Custom Interface** - 数据库专属功能的统一抽象
+  - 单一 VTable 设计，处理所有数据库类型
+  - 支持 SQL 数据库（返回 `SQLResult`）和向量数据库（返回 JSON）
+  - 灵感来自 xb (Go) v1.1.0 Custom 接口设计
+
+- **官方 Custom 实现**:
+  - `MySQLCustom` - MySQL 专属功能（UPSERT, INSERT IGNORE）
+  - `QdrantCustom` - Qdrant 向量数据库（highPrecision/highSpeed 模式）
+
+- **Builder 增强**:
+  - `setCustom()` - 设置 Custom 实现
+  - `build()` - 支持 Custom 代理
+  - `jsonOfSelect()` - 生成 JSON 查询（向量数据库）
+
+### 📊 架构设计
+
+```zig
+pub const Custom = struct {
+    ptr: *anyopaque,
+    vtable: *const VTable,
+    
+    pub const Result = union(enum) {
+        sql: SQLResult,    // SQL databases
+        json: []const u8,  // Vector databases
+    };
+};
+```
+
+**设计亮点**:
+- ✅ Zig 的 VTable 模式实现多态
+- ✅ Tagged Union 实现类型安全的结果
+- ✅ `null` Custom 表示默认 SQL 生成
+
+### 📖 文档
+
+- 更新 README.md 添加 Custom 接口示例
+- MySQL UPSERT 使用示例
+- Qdrant JSON 生成示例
+
+### 🧪 测试
+
+- Custom 接口测试
+- MySQLCustom 测试
+- QdrantCustom 测试
+- 所有测试通过 ✅
+
+---
+
 ## v0.0.1 (2025-10-29) - 首次发布 🎉
 
 ### 🎯 首次发布

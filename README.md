@@ -2,11 +2,14 @@
 
 **A lightweight, type-safe SQL query builder for Zig, inspired by [xb (Go)](https://github.com/fndome/xb).**
 
+> 🎉 **v0.2.0**: Custom Interface - Database-specific features for SQL and vector databases!
+
 ## Why zxb?
 
 - ✅ **Simple**: Only 4 fields (`Bb` struct) to express all queries
 - ✅ **Type-Safe**: Compile-time type checking with `anytype`
 - ✅ **Auto-Filtering**: Automatically filters nil/0/empty values
+- ✅ **Custom Interface**: Extensible for MySQL, Qdrant, and more (v0.2.0)
 - ✅ **Zero Dependencies**: Pure Zig implementation
 - ✅ **AI-Friendly**: Clean API that AI can easily understand and generate
 
@@ -160,6 +163,49 @@ defer allocator.free(sql);
 var args = try builder.args();
 defer args.deinit();
 ```
+
+### 6. Custom Interface (v0.2.0)
+
+Database-specific features via Custom interface:
+
+#### MySQL with UPSERT
+
+```zig
+var builder = zxb.of(allocator, "users");
+defer builder.deinit();
+
+// ⭐ Set MySQL Custom
+var mysql = zxb.MySQLCustom.withUpsert();
+_ = builder.setCustom(mysql.custom());
+
+_ = try builder.eq("id", 1);
+_ = try builder.eq("name", "Alice");
+
+var result = try builder.build();
+defer result.deinit(allocator);
+// Future: Will generate INSERT ... ON DUPLICATE KEY UPDATE ...
+```
+
+#### Qdrant Vector Database
+
+```zig
+var builder = zxb.of(allocator, "vectors");
+defer builder.deinit();
+
+// ⭐ Set Qdrant Custom (high precision mode)
+var qdrant = zxb.QdrantCustom.highPrecision();
+_ = builder.setCustom(qdrant.custom());
+
+const json = try builder.jsonOfSelect();
+defer allocator.free(json);
+// Returns: {"vector": [], "limit": 10, "params": {"hnsw_ef": 512}}
+```
+
+**Architecture**:
+- ✅ One `Custom` interface for all databases
+- ✅ SQL databases return `SQLResult` (sql + args)
+- ✅ Vector databases return JSON string
+- ✅ Inspired by xb (Go) v1.1.0 design
 
 ## Comparison with Other Languages
 

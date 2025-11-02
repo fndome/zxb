@@ -1,6 +1,7 @@
 const std = @import("std");
 const Bb = @import("bb.zig").Bb;
 const Value = @import("value.zig").Value;
+const Custom = @import("custom.zig").Custom;
 const Allocator = std.mem.Allocator;
 
 /// SQL Query Builder
@@ -12,6 +13,7 @@ pub const Builder = struct {
     limit_value: ?i32,
     offset_value: ?i32,
     allocated_strings: std.ArrayList([]const u8), // Track allocated LIKE patterns
+    custom: ?Custom = null, // ⭐ Database-specific configuration (v0.2.0)
 
     const Sort = struct {
         field: []const u8,
@@ -28,7 +30,18 @@ pub const Builder = struct {
             .limit_value = null,
             .offset_value = null,
             .allocated_strings = std.ArrayList([]const u8).init(allocator),
+            .custom = null,
         };
+    }
+
+    /// Set Custom implementation (database-specific features)
+    /// 
+    /// Example:
+    ///   var mysql = MySQLCustom.withUpsert();
+    ///   builder.setCustom(mysql.custom());
+    pub fn setCustom(self: *Builder, custom: Custom) *Builder {
+        self.custom = custom;
+        return self;
     }
 
     /// Free all allocated memory
@@ -167,7 +180,28 @@ pub const Builder = struct {
     };
 
     /// Build SELECT query (returns both SQL and args)
+    /// ⭐ If Custom is set, delegates to Custom.generate()
     pub fn build(self: *Builder) !QueryResult {
+        // ⭐ Use Custom if available
+        if (self.custom) |custom| {
+            var result = try custom.generate(self.allocator, self);
+            switch (result) {
+                .sql => |sql_result| {
+                    return QueryResult{
+                        .sql = sql_result.sql,
+                        .args = sql_result.args,
+                    };
+                },
+                .json => {
+                    // For JSON result, free it and return error
+                    // User should use jsonOfSelect() for JSON databases
+                    result.deinit(self.allocator);
+                    return error.UseJsonOfSelect;
+                },
+            }
+        }
+
+        // ⭐ Default SQL generation
         const sql = try self.sqlOfSelect();
         const query_args = try self.args();
         return QueryResult{
@@ -246,6 +280,23 @@ pub const Builder = struct {
         }
 
         return result;
+    }
+
+    /// Generate JSON query (for vector databases like Qdrant)
+    /// ⭐ Requires Custom to be set
+    pub fn jsonOfSelect(self: *Builder) ![]const u8 {
+        if (self.custom) |custom| {
+            var result = try custom.generate(self.allocator, self);
+            switch (result) {
+                .json => |json| return json,
+                .sql => {
+                    // Free SQL result and return error
+                    result.deinit(self.allocator);
+                    return error.UseSqlOfSelect;
+                },
+            }
+        }
+        return error.CustomRequired;
     }
 };
 
