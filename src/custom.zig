@@ -74,13 +74,9 @@ pub const MySQLCustom = struct {
         return .{};
     }
 
-    pub fn withUpsert() Self {
-        return .{ .use_upsert = true };
-    }
-
-    pub fn withIgnore() Self {
-        return .{ .use_ignore = true };
-    }
+    // Usage:
+    //   var custom = MySQLCustom.init();
+    //   custom.use_upsert = true;  // Manual configuration
 
     pub fn custom(self: *Self) Custom {
         return .{
@@ -128,21 +124,10 @@ pub const QdrantCustom = struct {
         return .{};
     }
 
-    pub fn highPrecision() Self {
-        return .{
-            .default_hnsw_ef = 512,
-            .default_score_threshold = 0.85,
-            .default_with_vector = true,
-        };
-    }
-
-    pub fn highSpeed() Self {
-        return .{
-            .default_hnsw_ef = 32,
-            .default_score_threshold = 0.5,
-            .default_with_vector = false,
-        };
-    }
+    // Usage:
+    //   var custom = QdrantCustom.init();
+    //   custom.default_hnsw_ef = 512;  // Manual configuration
+    //   custom.default_score_threshold = 0.85;
 
     pub fn custom(self: *Self) Custom {
         return .{
@@ -178,7 +163,8 @@ test "Custom interface - MySQL" {
     const testing = std.testing;
     const allocator = testing.allocator;
 
-    var mysql = MySQLCustom.withUpsert();
+    var mysql = MySQLCustom.init();
+    mysql.use_upsert = true;  // Manual configuration
     const custom = mysql.custom();
     defer custom.deinit(allocator);
 
@@ -202,7 +188,8 @@ test "Custom interface - Qdrant" {
     const testing = std.testing;
     const allocator = testing.allocator;
 
-    var qdrant = QdrantCustom.highPrecision();
+    var qdrant = QdrantCustom.init();
+    qdrant.default_hnsw_ef = 512;  // Manual configuration
     const custom = qdrant.custom();
     defer custom.deinit(allocator);
 

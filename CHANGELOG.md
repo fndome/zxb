@@ -1,5 +1,45 @@
 # Changelog
 
+## v0.0.3 (2025-01-XX) - API Simplification 🎨
+
+### 🎯 设计简化（对齐 xb v1.2.0）
+
+**Design Philosophy**: Don't add concepts to solve problems. Less is more.
+
+### Removed
+- ❌ `MySQLCustom.withUpsert()` - Use manual configuration instead
+- ❌ `MySQLCustom.withIgnore()` - Use manual configuration instead
+- ❌ `QdrantCustom.highPrecision()` - Use manual configuration instead
+- ❌ `QdrantCustom.highSpeed()` - Use manual configuration instead
+
+### Changed
+- Only basic constructors remain: `MySQLCustom.init()`, `QdrantCustom.init()`
+- Users configure via struct fields (e.g., `custom.use_upsert = true`)
+
+### Why Simplify?
+- Reduces API surface (4 fewer methods)
+- Clearer: manual configuration is explicit
+- Consistent with xb (Go) v1.2.0 design philosophy
+
+### Usage
+
+**Before (v0.0.2)**:
+```zig
+var mysql = MySQLCustom.withUpsert();
+var qdrant = QdrantCustom.highPrecision();
+```
+
+**After (v0.0.3)**:
+```zig
+var mysql = MySQLCustom.init();
+mysql.use_upsert = true;  // Explicit
+
+var qdrant = QdrantCustom.init();
+qdrant.default_hnsw_ef = 512;  // Explicit
+```
+
+---
+
 ## v0.0.2 (2025-01-XX) - Custom Interface 🎨
 
 ### ✨ 新特性

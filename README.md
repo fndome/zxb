@@ -175,7 +175,8 @@ var builder = zxb.of(allocator, "users");
 defer builder.deinit();
 
 // ⭐ Set MySQL Custom
-var mysql = zxb.MySQLCustom.withUpsert();
+var mysql = zxb.MySQLCustom.init();
+mysql.use_upsert = true;  // Manual configuration
 _ = builder.setCustom(mysql.custom());
 
 _ = try builder.eq("id", 1);
@@ -192,8 +193,9 @@ defer result.deinit(allocator);
 var builder = zxb.of(allocator, "vectors");
 defer builder.deinit();
 
-// ⭐ Set Qdrant Custom (high precision mode)
-var qdrant = zxb.QdrantCustom.highPrecision();
+// ⭐ Set Qdrant Custom
+var qdrant = zxb.QdrantCustom.init();
+qdrant.default_hnsw_ef = 512;  // Manual configuration
 _ = builder.setCustom(qdrant.custom());
 
 const json = try builder.jsonOfSelect();

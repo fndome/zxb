@@ -119,7 +119,8 @@ test "Custom interface - MySQL" {
     defer builder.deinit();
 
     // ⭐ Set MySQL Custom
-    var mysql = MySQLCustom.withUpsert();
+    var mysql = MySQLCustom.init();
+    mysql.use_upsert = true;  // Manual configuration
     _ = builder.setCustom(mysql.custom());
 
     _ = try builder.eq("id", 1);
@@ -141,7 +142,8 @@ test "Custom interface - Qdrant JSON" {
     defer builder.deinit();
 
     // ⭐ Set Qdrant Custom
-    var qdrant = QdrantCustom.highPrecision();
+    var qdrant = QdrantCustom.init();
+    qdrant.default_hnsw_ef = 512;  // Manual configuration
     _ = builder.setCustom(qdrant.custom());
 
     const json = try builder.jsonOfSelect();
