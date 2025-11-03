@@ -1,6 +1,6 @@
-# zxb - Zig SQL Query Builder
+# zxb - Zig SQL Or JSON Query Builder
 
-**A lightweight, type-safe SQL query builder for Zig, inspired by [xb (Go)](https://github.com/fndome/xb).**
+**A lightweight, type-safe SQL Or JSON query builder for Zig, inspired by [xb (Go)](https://github.com/fndome/xb).**
 
 > 🎉 **v0.2.0**: Custom Interface - Database-specific features for SQL and vector databases!
 
