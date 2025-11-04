@@ -2,7 +2,7 @@
 
 **A lightweight, type-safe SQL Or JSON query builder for Zig, inspired by [xb (Go)](https://github.com/fndome/xb).**
 
-> 🎉 **v0.2.0**: Custom Interface - Database-specific features for SQL and vector databases!
+> 🎉 **v0.0.4**: Builder Pattern - Dynamic default value handling for database configurations!
 
 ## Why zxb?
 
@@ -174,10 +174,16 @@ Database-specific features via Custom interface:
 var builder = zxb.of(allocator, "users");
 defer builder.deinit();
 
-// ⭐ Set MySQL Custom
-var mysql = zxb.MySQLCustom.init();
-mysql.use_upsert = true;  // Manual configuration
-_ = builder.setCustom(mysql.custom());
+// ⭐ Set MySQL Custom (v0.0.4 - Builder pattern recommended)
+// Method 1: Builder pattern (recommended)
+var mb = zxb.MySQLBuilder.init();
+const mysql_custom = mb.useUpsert(true).build();
+_ = builder.custom(mysql_custom.custom());
+
+// Method 2: Direct field setting
+// var mysql = zxb.MySQLCustom.init();
+// mysql.use_upsert = true;
+// _ = builder.custom(mysql.custom());
 
 _ = try builder.eq("id", 1);
 _ = try builder.eq("name", "Alice");
@@ -193,10 +199,19 @@ defer result.deinit(allocator);
 var builder = zxb.of(allocator, "vectors");
 defer builder.deinit();
 
-// ⭐ Set Qdrant Custom
-var qdrant = zxb.QdrantCustom.init();
-qdrant.default_hnsw_ef = 512;  // Manual configuration
-_ = builder.setCustom(qdrant.custom());
+// ⭐ Set Qdrant Custom (v0.0.4 - Builder pattern recommended)
+// Method 1: Builder pattern (recommended - dynamic default handling)
+var qb = zxb.QdrantBuilder.init();
+const qdrant_custom = qb.hnswEf(512)
+    .scoreThreshold(0.85)
+    .withVector(false)
+    .build();
+_ = builder.custom(qdrant_custom.custom());
+
+// Method 2: Direct field setting
+// var qdrant = zxb.QdrantCustom.init();
+// qdrant.default_hnsw_ef = 512;
+// _ = builder.custom(qdrant.custom());
 
 const json = try builder.jsonOfSelect();
 defer allocator.free(json);

@@ -13,7 +13,7 @@ pub const Builder = struct {
     limit_value: ?i32,
     offset_value: ?i32,
     allocated_strings: std.ArrayList([]const u8), // Track allocated LIKE patterns
-    custom: ?Custom = null, // ⭐ Database-specific configuration (v0.2.0)
+    custom_impl: ?Custom = null, // ⭐ Database-specific configuration (v0.2.0)
 
     const Sort = struct {
         field: []const u8,
@@ -30,17 +30,18 @@ pub const Builder = struct {
             .limit_value = null,
             .offset_value = null,
             .allocated_strings = std.ArrayList([]const u8).init(allocator),
-            .custom = null,
+            .custom_impl = null,
         };
     }
 
     /// Set Custom implementation (database-specific features)
     /// 
     /// Example:
-    ///   var mysql = MySQLCustom.withUpsert();
-    ///   builder.setCustom(mysql.custom());
-    pub fn setCustom(self: *Builder, custom: Custom) *Builder {
-        self.custom = custom;
+    ///   var qb = QdrantBuilder.init();
+    ///   const qdrant_custom = qb.hnswEf(512).build();
+    ///   _ = builder.custom(qdrant_custom.custom());
+    pub fn custom(self: *Builder, cust: Custom) *Builder {
+        self.custom_impl = cust;
         return self;
     }
 
@@ -183,8 +184,8 @@ pub const Builder = struct {
     /// ⭐ If Custom is set, delegates to Custom.generate()
     pub fn build(self: *Builder) !QueryResult {
         // ⭐ Use Custom if available
-        if (self.custom) |custom| {
-            var result = try custom.generate(self.allocator, self);
+        if (self.custom_impl) |cust| {
+            var result = try cust.generate(self.allocator, self);
             switch (result) {
                 .sql => |sql_result| {
                     return QueryResult{
@@ -285,8 +286,8 @@ pub const Builder = struct {
     /// Generate JSON query (for vector databases like Qdrant)
     /// ⭐ Requires Custom to be set
     pub fn jsonOfSelect(self: *Builder) ![]const u8 {
-        if (self.custom) |custom| {
-            var result = try custom.generate(self.allocator, self);
+        if (self.custom_impl) |cust| {
+            var result = try cust.generate(self.allocator, self);
             switch (result) {
                 .json => |json| return json,
                 .sql => {

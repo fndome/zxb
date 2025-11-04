@@ -1,0 +1,142 @@
+feat: v0.0.4 - Builder 模式，对齐 xb v1.2.1
+
+🏗️ 核心改进：动态默认值处理
+
+## 新增功能
+
+### Builder 模式
+- QdrantBuilder - Qdrant 配置构建器
+  - .hnswEf(i32) - 设置 HNSW ef 参数
+  - .scoreThreshold(f32) - 设置相似度阈值
+  - .withVector(bool) - 设置是否返回向量
+  - .build() - 构建并返回 QdrantCustom
+
+- MySQLBuilder - MySQL 配置构建器
+  - .useUpsert(bool) - 启用 ON DUPLICATE KEY UPDATE
+  - .useIgnore(bool) - 启用 INSERT IGNORE
+  - .build() - 构建并返回 MySQLCustom
+
+## 修改
+
+### 默认值优化
+- QdrantCustom.default_with_vector: true → false
+- 对齐 xb v1.2.1（节省带宽）
+
+## 设计哲学
+
+### Builder 的真正意义
+
+**不是为了链式调用，而是为了动态默认值处理！**
+
+```zig
+// ❌ 直接设置字段：必须写所有字段
+const custom = QdrantCustom{
+    .default_hnsw_ef = 512,
+    .default_score_threshold = 0.85,
+    .default_with_vector = false,  // ← 即使用默认值也得写
+};
+
+// ✅ Builder：只设置需要改的
+var builder = QdrantBuilder.init();
+const custom = builder.hnswEf(512)
+    .scoreThreshold(0.85)
+    // .withVector() ← 不调用就用默认值！
+    .build();
+```
+
+### 为什么需要 Builder？
+
+- Qdrant 等数据库有默认值逻辑
+- Builder 动态忽略未设置的字段
+- 这才是动态构建的意义
+- 不只是满足某个数据库的需求，而是通用的设计模式
+
+### 适用场景
+
+| 数据库 | 需要 Builder | 原因 |
+|--------|-------------|------|
+| Qdrant | ✅ 是 | 有多个默认值参数 |
+| MySQL  | ✅ 是 | 有 Upsert/Ignore 选项 |
+| Oracle | ❌ 否 | 可能无默认值需求 |
+
+## 对齐 xb (Go)
+
+### xb v1.2.1
+```go
+xb.Of(...).Custom(
+    xb.NewQdrantBuilder().
+        HnswEf(512).
+        ScoreThreshold(0.8).
+        Build(),
+).Build()
+```
+
+### zxb v0.0.4
+```zig
+var qb = zxb.QdrantBuilder.init();
+const custom = qb.hnswEf(512)
+    .scoreThreshold(0.8)
+    .build();
+builder.setCustom(custom.custom());
+```
+
+## 使用示例
+
+### Qdrant Builder
+```zig
+// ✅ Fluent API
+var qb = QdrantBuilder.init();
+const custom = qb.hnswEf(512)
+    .scoreThreshold(0.85)
+    .withVector(false)
+    .build();
+
+var builder = Builder.init(allocator, "vectors");
+_ = builder.custom(custom.custom());
+```
+
+### MySQL Builder
+```zig
+// ✅ Fluent API
+var mb = MySQLBuilder.init();
+const custom = mb.useUpsert(true).build();
+
+var builder = Builder.init(allocator, "users");
+_ = builder.custom(custom.custom());
+```
+
+### 配置复用
+```zig
+// ✅ Builder 天然支持配置复用
+var qb = QdrantBuilder.init();
+const high_precision = qb.hnswEf(512).build();
+
+// 多次使用
+_ = builder1.setCustom(high_precision.custom());
+_ = builder2.setCustom(high_precision.custom());
+```
+
+## 测试
+
+- 所有测试通过 ✅
+- 新增 Builder 模式测试
+- 配置复用测试
+
+## 文件变更
+
+修改:
+- src/custom.zig (添加 QdrantBuilder 和 MySQLBuilder)
+- CHANGELOG.md (v0.0.4 条目)
+- README.md (更新示例)
+
+## 哲学一致性
+
+zxb 和 xb 在设计哲学上完全对齐：
+- Don't add concepts to solve problems
+- 提供 Builder 是为了解决默认值处理
+- 保持 API 简洁和一致
+
+---
+
+zxb v0.0.4 - 对齐 xb v1.2.1 🚀
+

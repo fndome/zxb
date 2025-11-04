@@ -62,6 +62,34 @@ pub const Custom = struct {
     }
 };
 
+/// MySQLBuilder - Builder pattern for MySQL configuration
+/// Provides fluent API for MySQL Custom configuration
+pub const MySQLBuilder = struct {
+    mysql_custom: MySQLCustom,
+
+    const Self = @This();
+
+    pub fn init() Self {
+        return .{
+            .mysql_custom = MySQLCustom.init(),
+        };
+    }
+
+    pub fn useUpsert(self: *Self, use: bool) *Self {
+        self.mysql_custom.use_upsert = use;
+        return self;
+    }
+
+    pub fn useIgnore(self: *Self, use: bool) *Self {
+        self.mysql_custom.use_ignore = use;
+        return self;
+    }
+
+    pub fn build(self: *Self) MySQLCustom {
+        return self.mysql_custom;
+    }
+};
+
 /// Example: MySQL Custom Implementation
 /// Supports MySQL-specific features like INSERT ... ON DUPLICATE KEY UPDATE
 pub const MySQLCustom = struct {
@@ -74,9 +102,13 @@ pub const MySQLCustom = struct {
         return .{};
     }
 
-    // Usage:
+    // Usage (Method 1 - Direct field setting):
     //   var custom = MySQLCustom.init();
     //   custom.use_upsert = true;  // Manual configuration
+    //
+    // Usage (Method 2 - Builder pattern, recommended):
+    //   var builder = MySQLBuilder.init();
+    //   const custom = builder.useUpsert(true).build();
 
     pub fn custom(self: *Self) Custom {
         return .{
@@ -111,12 +143,45 @@ pub const MySQLCustom = struct {
     }
 };
 
+/// QdrantBuilder - Builder pattern for Qdrant configuration
+/// Provides fluent API for Qdrant Custom configuration with default value handling
+pub const QdrantBuilder = struct {
+    qdrant_custom: QdrantCustom,
+
+    const Self = @This();
+
+    pub fn init() Self {
+        return .{
+            .qdrant_custom = QdrantCustom.init(),
+        };
+    }
+
+    pub fn hnswEf(self: *Self, ef: i32) *Self {
+        self.qdrant_custom.default_hnsw_ef = ef;
+        return self;
+    }
+
+    pub fn scoreThreshold(self: *Self, threshold: f32) *Self {
+        self.qdrant_custom.default_score_threshold = threshold;
+        return self;
+    }
+
+    pub fn withVector(self: *Self, with_vec: bool) *Self {
+        self.qdrant_custom.default_with_vector = with_vec;
+        return self;
+    }
+
+    pub fn build(self: *Self) QdrantCustom {
+        return self.qdrant_custom;
+    }
+};
+
 /// Example: Qdrant Custom Implementation
 /// Generates JSON for Qdrant vector database
 pub const QdrantCustom = struct {
     default_hnsw_ef: i32 = 128,
     default_score_threshold: f32 = 0.0,
-    default_with_vector: bool = true,
+    default_with_vector: bool = false, // 对齐 xb v1.2.1: 默认不返回向量（节省带宽）
 
     const Self = @This();
 
@@ -124,10 +189,14 @@ pub const QdrantCustom = struct {
         return .{};
     }
 
-    // Usage:
+    // Usage (Method 1 - Direct field setting):
     //   var custom = QdrantCustom.init();
     //   custom.default_hnsw_ef = 512;  // Manual configuration
     //   custom.default_score_threshold = 0.85;
+    //
+    // Usage (Method 2 - Builder pattern, recommended):
+    //   var builder = QdrantBuilder.init();
+    //   const custom = builder.hnswEf(512).scoreThreshold(0.85).build();
 
     pub fn custom(self: *Self) Custom {
         return .{
@@ -206,5 +275,58 @@ test "Custom interface - Qdrant" {
             try testing.expect(std.mem.indexOf(u8, json, "hnsw_ef") != null);
         },
     }
+}
+
+test "QdrantBuilder - fluent API" {
+    const testing = std.testing;
+    const allocator = testing.allocator;
+
+    // ✅ Builder pattern: fluent API with default value handling
+    var qb = QdrantBuilder.init();
+    const qdrant_custom = qb.hnswEf(512)
+        .scoreThreshold(0.85)
+        .withVector(false)
+        .build();
+
+    var custom_copy = qdrant_custom;
+    const custom = custom_copy.custom();
+    defer custom.deinit(allocator);
+
+    var builder = Builder.init(allocator, "vectors");
+    defer builder.deinit();
+
+    var result = try custom.generate(allocator, &builder);
+    defer result.deinit(allocator);
+
+    switch (result) {
+        .sql => unreachable,
+        .json => |json| {
+            try testing.expect(json.len > 0);
+            try testing.expect(std.mem.indexOf(u8, json, "\"hnsw_ef\": 512") != null);
+        },
+    }
+}
+
+test "MySQLBuilder - fluent API" {
+    const testing = std.testing;
+
+    // ✅ Builder pattern for MySQL
+    var mb = MySQLBuilder.init();
+    const mysql_custom = mb.useUpsert(true).build();
+
+    try testing.expect(mysql_custom.use_upsert == true);
+    try testing.expect(mysql_custom.use_ignore == false);
+}
+
+test "Builder - config reuse" {
+    const testing = std.testing;
+
+    // ✅ Config can be reused
+    var qb = QdrantBuilder.init();
+    const high_precision = qb.hnswEf(512).scoreThreshold(0.9).build();
+
+    // Use config multiple times
+    try testing.expect(high_precision.default_hnsw_ef == 512);
+    try testing.expect(high_precision.default_score_threshold == 0.9);
 }
 

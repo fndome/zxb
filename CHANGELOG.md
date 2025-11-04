@@ -1,5 +1,73 @@
 # Changelog
 
+## v0.0.4 (2025-01-XX) - Builder Pattern 🏗️
+
+### 🎯 Builder 模式（对齐 xb v1.2.1）
+
+**Design Philosophy**: Builder pattern for dynamic default value handling.
+
+### Added
+- **QdrantBuilder** - Fluent API for Qdrant configuration
+  - `.hnswEf(i32)` - Set HNSW ef parameter
+  - `.scoreThreshold(f32)` - Set score threshold
+  - `.withVector(bool)` - Set whether to return vectors
+  - `.build()` - Build and return QdrantCustom
+
+- **MySQLBuilder** - Fluent API for MySQL configuration
+  - `.useUpsert(bool)` - Enable ON DUPLICATE KEY UPDATE
+  - `.useIgnore(bool)` - Enable INSERT IGNORE
+  - `.build()` - Build and return MySQLCustom
+
+### Changed
+- `QdrantCustom.default_with_vector` - Default changed from `true` to `false` (bandwidth optimization, aligns with xb v1.2.1)
+
+### Why Builder Pattern?
+
+**Not for chain style, but for dynamic default value handling!**
+
+```zig
+// ❌ Direct field setting: must set all fields
+const custom = QdrantCustom{
+    .default_hnsw_ef = 512,
+    .default_score_threshold = 0.85,
+    .default_with_vector = false,  // ← Must write even for default
+};
+
+// ✅ Builder: only set what you need
+var builder = QdrantBuilder.init();
+const custom = builder.hnswEf(512)
+    .scoreThreshold(0.85)
+    // .withVector() ← Not called = use default!
+    .build();
+```
+
+**Core Value**: Builder handles default values, suitable for databases like Qdrant. Databases without default value requirements (like Oracle) can skip Builder.
+
+### Usage
+
+```zig
+// ✅ Recommended: Builder pattern
+var qb = QdrantBuilder.init();
+const custom = qb.hnswEf(512)
+    .scoreThreshold(0.85)
+    .withVector(false)
+    .build();
+
+var builder = Builder.init(allocator, "vectors");
+_ = builder.custom(custom.custom());
+
+// ✅ Alternative: Direct field setting
+var custom = QdrantCustom.init();
+custom.default_hnsw_ef = 512;
+```
+
+### Tests
+- All tests pass ✅
+- New tests for QdrantBuilder and MySQLBuilder
+- Config reuse tests
+
+---
+
 ## v0.0.3 (2025-01-XX) - API Simplification 🎨
 
 ### 🎯 设计简化（对齐 xb v1.2.0）
